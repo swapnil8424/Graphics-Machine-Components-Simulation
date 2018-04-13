@@ -1,71 +1,68 @@
 // CPP program to illustrate
 // Scan-line Polygon fill Algorithm
+
 #include<GL/gl.h>
 #include <stdio.h>
 #include <math.h>
 #include <GL/glut.h>
-#define maxHt 800
-#define maxWd 600
+#define maxHt 1080
+#define maxWd 1920
 #define maxVer 10000
 
 FILE *fp;
 
-typedef struct edgebucket
+typedef struct edgetuple
 {
 	int ymax;
 	float xofymin;
 	float slopeinverse;
-}EdgeBucket;
+}EdgeTuple;
 
-typedef struct edgetabletup
+typedef struct edgetablebucket
 {
-	int countEdgeBucket;
-	EdgeBucket buckets[maxVer];
-}EdgeTableTuple;
-EdgeTableTuple EdgeTable[maxHt], ActiveEdgeTuple;
+	int countEdgeTuple;
+	EdgeTuple tuples[maxVer];
+}EdgeTableBucket;
+
+EdgeTableBucket EdgeTable[maxHt], ActiveEdgeBucket;
 
 void initEdgeTable()
 {
-	int i;
-	for (i=0; i<maxHt; i++)
-	{
-		EdgeTable[i].countEdgeBucket = 0;
-	}
-
-	ActiveEdgeTuple.countEdgeBucket = 0;
+	for (int i=0; i<maxHt; i++)
+		EdgeTable[i].countEdgeTuple = 0;
+	ActiveEdgeBucket.countEdgeTuple = 0;
 }
-void insertionSort(EdgeTableTuple *ett)
+
+void insertionSort(EdgeTableBucket *ett)
 {
 	int i,j;
-	EdgeBucket temp;
-
-	for (i = 1; i < ett->countEdgeBucket; i++)
+	EdgeTuple temp;
+	for (i = 1; i < ett->countEdgeTuple; i++)
 	{
-		temp.ymax = ett->buckets[i].ymax;
-		temp.xofymin = ett->buckets[i].xofymin;
-		temp.slopeinverse = ett->buckets[i].slopeinverse;
+		temp.ymax = ett->tuples[i].ymax;
+		temp.xofymin = ett->tuples[i].xofymin;
+		temp.slopeinverse = ett->tuples[i].slopeinverse;
 		j = i - 1;
-
-	while ((temp.xofymin < ett->buckets[j].xofymin) && (j >= 0))
-	{
-		ett->buckets[j + 1].ymax = ett->buckets[j].ymax;
-		ett->buckets[j + 1].xofymin = ett->buckets[j].xofymin;
-		ett->buckets[j + 1].slopeinverse = ett->buckets[j].slopeinverse;
-		j = j - 1;
-	}
-	ett->buckets[j + 1].ymax = temp.ymax;
-	ett->buckets[j + 1].xofymin = temp.xofymin;
-	ett->buckets[j + 1].slopeinverse = temp.slopeinverse;
+        while ((temp.xofymin < ett->tuples[j].xofymin) && (j >= 0))
+        {
+            ett->tuples[j + 1].ymax = ett->tuples[j].ymax;
+            ett->tuples[j + 1].xofymin = ett->tuples[j].xofymin;
+            ett->tuples[j + 1].slopeinverse = ett->tuples[j].slopeinverse;
+            j = j - 1;
+        }
+        ett->tuples[j + 1].ymax = temp.ymax;
+        ett->tuples[j + 1].xofymin = temp.xofymin;
+        ett->tuples[j + 1].slopeinverse = temp.slopeinverse;
 	}
 }
 
-void storeEdgeInTuple (EdgeTableTuple *receiver,int ym,int xm,float slopInv)
+void storeEdgeInBucket (EdgeTableBucket *receiver,int ym,int xm,float slopInv)
 {
-	(receiver->buckets[(receiver)->countEdgeBucket]).ymax = ym;
-	(receiver->buckets[(receiver)->countEdgeBucket]).xofymin = (float)xm;
-	(receiver->buckets[(receiver)->countEdgeBucket]).slopeinverse = slopInv;
+	(receiver->tuples[(receiver)->countEdgeTuple]).ymax = ym;
+	(receiver->tuples[(receiver)->countEdgeTuple]).xofymin = (float)xm;
+	(receiver->tuples[(receiver)->countEdgeTuple]).slopeinverse = slopInv;
 	insertionSort(receiver);
-	(receiver->countEdgeBucket)++;
+	(receiver->countEdgeTuple)++;
 }
 
 void storeEdgeInTable (int x1,int y1, int x2, int y2)
@@ -77,11 +74,10 @@ void storeEdgeInTable (int x1,int y1, int x2, int y2)
 	else
 	{
         m = ((float)(y2-y1))/((float)(x2-x1));
-        // horizontal lines are not stored in edge table
         if (y2==y1)
             return;
         minv = (float)1.0/m;
-        printf("\nSlope string for %d %d & %d %d: %f",x1,y1,x2,y2,minv);
+       // printf("\nSlope string for %d %d & %d %d: %f",x1,y1,x2,y2,minv);
 	}
 	if (y1>y2)
 	{
@@ -95,22 +91,20 @@ void storeEdgeInTable (int x1,int y1, int x2, int y2)
 		ymaxTS=y2;
 		xwithyminTS=x1;
 	}
-	storeEdgeInTuple(&EdgeTable[scanline],ymaxTS,xwithyminTS,minv);
+	storeEdgeInBucket(&EdgeTable[scanline],ymaxTS,xwithyminTS,minv);
 }
 
-
-
-void printTuple(EdgeTableTuple *tup)
+void printTuple(EdgeTableBucket *tup)
 {
 	int j;
 
-	if (tup->countEdgeBucket)
-		printf("\nCount %d-----\n",tup->countEdgeBucket);
+	if (tup->countEdgeTuple)
+		printf("\nCount %d-----\n",tup->countEdgeTuple);
 
-		for (j=0; j<tup->countEdgeBucket; j++)
+		for (j=0; j<tup->countEdgeTuple; j++)
 		{
 			printf(" %d+%.2f+%.2f",
-			tup->buckets[j].ymax, tup->buckets[j].xofymin,tup->buckets[j].slopeinverse);
+			tup->tuples[j].ymax, tup->tuples[j].xofymin,tup->tuples[j].slopeinverse);
 		}
 }
 
@@ -120,38 +114,36 @@ void printTable()
 
 	for (i=0; i<maxHt; i++)
 	{
-		if (EdgeTable[i].countEdgeBucket)
+		if (EdgeTable[i].countEdgeTuple)
 			printf("\nScanline %d", i);
 
 		printTuple(&EdgeTable[i]);
 	}
 }
 
-
-
-void removeEdgeByYmax(EdgeTableTuple *Tup,int yy)
+void removeEdgeByYmax(EdgeTableBucket *Tup,int yy)
 {
 	int i,c;
-	for (i=0; i< Tup->countEdgeBucket; i++)
-		if (Tup->buckets[i].ymax == yy)
+	for (i=0; i< Tup->countEdgeTuple; i++)
+		if (Tup->tuples[i].ymax == yy)
 		{
-			printf("\nRemoved at %d",yy);
-			for ( c = i ; c < Tup->countEdgeBucket -1 ; c++ )
+			//printf("\nRemoved at %d",yy);
+			for ( c = i ; c < Tup->countEdgeTuple -1 ; c++ )
             {
-				Tup->buckets[c].ymax =Tup->buckets[c+1].ymax;
-				Tup->buckets[c].xofymin =Tup->buckets[c+1].xofymin;
-				Tup->buckets[c].slopeinverse = Tup->buckets[c+1].slopeinverse;
+				Tup->tuples[c].ymax =Tup->tuples[c+1].ymax;
+				Tup->tuples[c].xofymin =Tup->tuples[c+1].xofymin;
+				Tup->tuples[c].slopeinverse = Tup->tuples[c+1].slopeinverse;
             }
-            Tup->countEdgeBucket--;
+            Tup->countEdgeTuple--;
 			i--;
 		}
 }
 
-void updatexbyslopeinv(EdgeTableTuple *Tup)
+void updatexbyslopeinv(EdgeTableBucket *Tup)
 {
 	int i;
-	for (i=0; i<Tup->countEdgeBucket; i++)
-		(Tup->buckets[i]).xofymin =(Tup->buckets[i]).xofymin + (Tup->buckets[i]).slopeinverse;
+	for (i=0; i<Tup->countEdgeTuple; i++)
+		(Tup->tuples[i]).xofymin =(Tup->tuples[i]).xofymin + (Tup->tuples[i]).slopeinverse;
 }
 
 void ScanlineFill()
@@ -162,18 +154,17 @@ void ScanlineFill()
 	3. Vertices: If local max or min, then count twice, else count
 		once.
 	4. Either vertices at local minima or at local maxima are drawn.*/
-
 	int i, j, x1, ymax1, x2, ymax2, FillFlag = 0, coordCount;
 	for (i=0; i<maxHt; i++)
 	{
-		for (j=0; j<EdgeTable[i].countEdgeBucket; j++)
+		for (j=0; j<EdgeTable[i].countEdgeTuple; j++)
 		{
-			storeEdgeInTuple(&ActiveEdgeTuple,EdgeTable[i].buckets[j].
-					ymax,EdgeTable[i].buckets[j].xofymin,
-					EdgeTable[i].buckets[j].slopeinverse);
+			storeEdgeInBucket(&ActiveEdgeBucket,EdgeTable[i].tuples[j].
+					ymax,EdgeTable[i].tuples[j].xofymin,
+					EdgeTable[i].tuples[j].slopeinverse);
 		}
-		removeEdgeByYmax(&ActiveEdgeTuple, i);
-		insertionSort(&ActiveEdgeTuple);
+		removeEdgeByYmax(&ActiveEdgeBucket, i);
+		insertionSort(&ActiveEdgeBucket);
 		j = 0;
 		FillFlag = 0;
 		coordCount = 0;
@@ -181,32 +172,33 @@ void ScanlineFill()
 		x2 = 0;
 		ymax1 = 0;
 		ymax2 = 0;
-		while (j<ActiveEdgeTuple.countEdgeBucket)
+		while (j<ActiveEdgeBucket.countEdgeTuple)
 		{
 			if (coordCount%2==0)
 			{
-				x1 = (int)(ActiveEdgeTuple.buckets[j].xofymin);
-				ymax1 = ActiveEdgeTuple.buckets[j].ymax;
+				x1 = (int)(ActiveEdgeBucket.tuples[j].xofymin);
+				ymax1 = ActiveEdgeBucket.tuples[j].ymax;
 				if (x1==x2)
 				/* three cases can arrive-
 					1. lines are towards top of the intersection
 					2. lines are towards bottom
 					3. one line is towards top and other is towards bottom
 				*/
-					if (((x1==ymax1)&&(x2!=ymax2))||((x1!=ymax1)&&(x2==ymax2)))
+					/*if (((x1==ymax1)&&(x2!=ymax2))||((x1!=ymax1)&&(x2==ymax2)))
 					{
+					    printf("Entered here (%d,%d) and (%d,%d)\n",x1,ymax1,x2,ymax2);
 						x2 = x1;
 						ymax2 = ymax1;
 					}
-					else
+					else*/
                         coordCount++;
 				else
                         coordCount++;
 			}
 			else
 			{
-				x2 = (int)ActiveEdgeTuple.buckets[j].xofymin;
-				ymax2 = ActiveEdgeTuple.buckets[j].ymax;
+				x2 = (int)ActiveEdgeBucket.tuples[j].xofymin;
+				ymax2 = ActiveEdgeBucket.tuples[j].ymax;
 				FillFlag = 0;
 				// checking for intersection...
 				if (x1==x2)
@@ -215,12 +207,13 @@ void ScanlineFill()
 					2. lines are towards bottom
 					3. one line is towards top and other is towards bottom
 				*/
-					if (((x1==ymax1)&&(x2!=ymax2))||((x1!=ymax1)&&(x2==ymax2)))
+					/*if (((x1==ymax1)&&(x2!=ymax2))||((x1!=ymax1)&&(x2==ymax2)))
 					{
+					    printf("Entered here (%d,%d) and (%d,%d)\n",x1,ymax1,x2,ymax2);
 						x1 = x2;
 						ymax1 = ymax2;
 					}
-					else
+					else*/
 					{
 						coordCount++;
 						FillFlag = 1;
@@ -242,7 +235,7 @@ void ScanlineFill()
 		}
 		j++;
 	}
-	updatexbyslopeinv(&ActiveEdgeTuple);
+	updatexbyslopeinv(&ActiveEdgeBucket);
  }
 
 }
@@ -278,13 +271,15 @@ void drawPolyDino()
 		}
 		else
 		{
+
 			fscanf(fp, "%d,%d", &x2, &y2);
-			printf("\n%d,%d", x2, y2);
+			//printf("Edge (%d,%d) to (%d,%d)\n",x1,y1,x2,y2);
+			//printf("\n%d,%d", x2, y2);
 			glBegin(GL_LINES);
-				glVertex2i( x1, y1);
-				glVertex2i( x2, y2);
+				glVertex2i( x1+100, y1);
+				glVertex2i( x2+100, y2);
 			glEnd();
-			storeEdgeInTable(x1, y1, x2, y2);
+			storeEdgeInTable(x1+100, y1, x2+100, y2);
 		}
 	}
 }
@@ -293,14 +288,13 @@ void drawDino(void)
 {
 	initEdgeTable();
 	drawPolyDino();
-	printf("\nTable");
-	printTable();
+	//printTable();
 	ScanlineFill();
 }
 
 int main(int argc, char** argv)
 {
-	fp=fopen ("D:\Graphics/dino.txt","r");
+	fp=fopen ("D:\Graphics/dinoo.txt","r");
 	if ( fp == NULL )
 	{
 		printf( "Could not open file" ) ;
@@ -310,7 +304,7 @@ int main(int argc, char** argv)
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(maxHt,maxWd);
 	glutInitWindowPosition(100, 150);
-	glutCreateWindow("Scanline filled dinosaur");
+	glutCreateWindow("Scanline Polyfill");
 	myInit();
 	glutDisplayFunc(drawDino);
 	glutMainLoop();
