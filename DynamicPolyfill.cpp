@@ -11,6 +11,7 @@
 #define maxVer 10000
 
 FILE *fp;
+
 using namespace std;
 struct Tuple
 {
@@ -191,13 +192,13 @@ void SortedEdgeTable::sortTable()
     }
 }
 
-void scanlineFill(SortedEdgeTable * MainTable)
+void scanlineFill(SortedEdgeTable * MainTable,int minY, int maxY,float r, float g, float b)
 {
     int x1, yMax1, x2, yMax2, noOfIntersections =0 ;
     int fillPair = 0;
     SortedEdgeTable ActiveTable;
     (ActiveTable.buckets).insert(pair<int,vector<Tuple>>(0,vector<Tuple>()));
-	for (int i=0; i<maxHt; i++)
+	for (int i=minY; i<maxY; i++)
 	{
 	    x1 = x2 = yMax1 = yMax2 = fillPair = noOfIntersections = 0;
 	    int j=0;
@@ -232,7 +233,7 @@ void scanlineFill(SortedEdgeTable * MainTable)
 			else
 			{
 				x2 = (ActiveTable.buckets[0])[j].plotX;
-				glColor3f(0.0f,0.7f,0.0f);
+				glColor3f(r,g,b);
 				glBegin(GL_LINES);
 				glVertex2i(x1+1,i);
 				glVertex2i(x2-1,i);
@@ -248,10 +249,11 @@ void scanlineFill(SortedEdgeTable * MainTable)
  }
 
 
-void drawOutline(SortedEdgeTable * MainTable)
+void drawAndFill(SortedEdgeTable * MainTable, float r, float g, float b)
 {
 	glColor3f(1.0f,0.0f,0.0f);
 	int count = 0,x1,y1,x2,y2;
+	int maxY=0, minY=maxHt;
 	rewind(fp);
 	while(!feof(fp) )
 	{
@@ -262,11 +264,16 @@ void drawOutline(SortedEdgeTable * MainTable)
 			y1 = y2;
 			count=2;
 		}
-		if (count==1)
+		if (count==1){
 			fscanf(fp, "%d,%d", &x1, &y1);
+            if(y1<minY)minY=y1;
+            if(y1>maxY)maxY=y1;
+		}
 		else
 		{
 			fscanf(fp, "%d,%d", &x2, &y2);
+			if(y2<minY)minY=y2;
+			if(y2>maxY)maxY=y2;
 			glBegin(GL_LINES);
 				glVertex2i( x1, y1);
 				glVertex2i( x2, y2);
@@ -275,14 +282,14 @@ void drawOutline(SortedEdgeTable * MainTable)
 		}
 	}
 	(*MainTable).sortTable();
+	scanlineFill(MainTable,minY,maxY,r,g,b);
 }
 
 void polyFill()
 {
+    float r=0,g=0,b=1;
 	SortedEdgeTable MainTable;
-	drawOutline(&MainTable);
-	scanlineFill(&MainTable);
-	//MainTable.traverseEdgeTable();
+	drawAndFill(&MainTable,r,g,b);
 }
 
 void myInit(void)
