@@ -10,6 +10,14 @@ void Piston();
 float x1, y1, x2, y2,x3,y3,x4,y4;
 float vert_x[]={130, 130, 160, 160, 130, 130, 270, 270 ,240 ,240 ,270 ,270};
 float vert_y[]={460, 440, 440, 430, 430, 300, 300, 430, 430, 440, 440, 460};
+float vert_outx[]={110,110,290,290};
+float vert_outy[]={320,720,720,320};
+float vert_inx[]={130,130,270,270};
+float vert_iny[]={310,700,700,310};
+float circle[]={200,380};
+float trans_point[]={circle[0]-20,circle[1],circle[0]+20,circle[1]};
+float circle_rot[]={275,210};
+float rot_point[]={circle_rot[0]-55,circle_rot[1],circle_rot[0]+55,circle_rot[1]};
 float **ax4 ;
 float X, Y, X1, Y1;
 float count1 = 0,y_coordinate ,translate = 10 ;
@@ -105,10 +113,11 @@ void draw_line(float x1, float x2, float y1, float y2) {
     }
     count1++ ;
 //    cout << count1 << endl ;
-glFlush();
+//glFlush();
 }
 
 void myDisplay() {
+
 
 //draw_line(x1, x2, y1, y2);
 //draw_line(x2, x3, y2, y3);
@@ -119,16 +128,30 @@ void myDisplay() {
             draw_line(vert_x[i],vert_x[i+1],vert_y[i],vert_y[i+1]);
     }
     draw_line(vert_x[11],vert_x[0],vert_y[11],vert_y[0]) ;
-    drawcircle(275,210,40);
+    //drawcircle(275,210,55);
     drawcircle(200,200,30);
     drawcircle(200,200,40);
     drawcircle(200,200,150);
     drawcircle(200,200,130 );
-    drawcircle(200,380,15);
-    drawcircle(200,380,20);
+    drawcircle(circle[0],circle[1],15);
+    drawcircle(circle[0],circle[1],20);
+    drawcircle(circle_rot[0],circle_rot[1],55);
+    draw_line(trans_point[0],rot_point[0],trans_point[1],rot_point[1]);
+    draw_line(trans_point[2],rot_point[2],trans_point[3],rot_point[3]);
     cout << vert_y[0] << " " << vert_y[11] << " " << y_coordinate << endl ;
     glClear(GL_COLOR_BUFFER_BIT);
-    long long int ab = 10000;
+     for(int i=0;i<3;i++)
+    {
+            draw_line(vert_outx[i],vert_outx[i+1],vert_outy[i],vert_outy[i+1]);
+    }
+     for(int i=0;i<3;i++)
+    {
+            draw_line(vert_inx[i],vert_inx[i+1],vert_iny[i],vert_iny[i+1]);
+    }
+
+    draw_line(trans_point[0],rot_point[0],trans_point[1],rot_point[1]);
+    draw_line(trans_point[2],rot_point[2],trans_point[3],rot_point[3]);
+    long long int ab = 100000000;
     while(ab--){;}
     if( vert_y[11] >= 700 ){
         translate = -10 ;
@@ -144,6 +167,27 @@ void myDisplay() {
         vert_x[i] = ax4[0][0] ;
         vert_y[i] = ax4[1][0] ;
     }
+    ax4 = TranslateMatrix(0,translate,&circle[0],&circle[1]) ;
+    circle[0]=ax4[0][0];
+    circle[1]=ax4[1][0];
+    ax4 = TranslateMatrix(0,translate,&trans_point[0],&trans_point[1]);
+    trans_point[0]=ax4[0][0];
+    trans_point[1]=ax4[1][0];
+    ax4 = TranslateMatrix(0,translate,&trans_point[2],&trans_point[3]);
+    trans_point[2]=ax4[0][0];
+    trans_point[3]=ax4[1][0];
+    ax4 = Rotation(200,200,1,&circle_rot[0],&circle_rot[1]);
+    circle_rot[0]=ax4[0][0];
+    circle_rot[1]=ax4[1][0];
+    ax4 = Rotation(200,200,1,&rot_point[0],&rot_point[1]);
+    rot_point[0]=ax4[0][0];
+    rot_point[1]=ax4[1][0];
+    ax4 = Rotation(200,200,1,&rot_point[2],&rot_point[3]);
+    rot_point[2]=ax4[0][0];
+    rot_point[3]=ax4[1][0];
+
+
+
 //    ax = TranslateMatrix(0,translate,&x2,&y2) ;
 //    angle1 += angle ;
 //    x2 = ax[0][0] ;
