@@ -16,8 +16,11 @@ struct Tuple
 {
     int xEndPoints[2],yEndPoints[2];
     int yMax;
-    float xOfyMin;
-    float inverseSlope;
+    int xOfyMin, xOfyMax;
+    int dx,dy;
+    int counter;
+    int plotX;
+    //float inverseSlope;
 };
 
 class SortedEdgeTable
@@ -37,29 +40,33 @@ class SortedEdgeTable
 
 void SortedEdgeTable::addTuple(int x1, int y1, int x2, int y2)
 {
-    float slope,inverseSlope, xOfyMin;
-	int yMax, yMin, scanlineNo;
     if (y2==y1)
             return;
-	if (x1==x2)
-		inverseSlope=0.0;
-	else
-    {
-        slope = ((float)(y2-y1))/((float)(x2-x1));
-        inverseSlope=1.0/slope;
-    }
+	int yMax,yMin, xOfyMin,xOfyMax, scanlineNo, dx, dy;
+    dx=abs(x2-x1);
+    dy=abs(y2-y1);
     scanlineNo=yMin=min(y1,y2);
     yMax=max(y1,y2);
 	if (yMin==y1)
-		xOfyMin=x1;
+	{
+	    xOfyMin=x1;
+	    xOfyMax=x2;
+	}
 	else
+    {
+        xOfyMax=x1;
 		xOfyMin=x2;
+    }
     Tuple t;
     t.yMax=yMax;
     t.xOfyMin=xOfyMin;
-    t.inverseSlope=inverseSlope;
+    t.xOfyMax=xOfyMax;
+    t.dx=dx;
+    t.dy=dy;
     t.xEndPoints[0]=x1;t.xEndPoints[1]=x2;
     t.yEndPoints[0]=y1;t.yEndPoints[1]=y2;
+    t.plotX=xOfyMin;
+    t.counter=0;
     if(buckets.count(scanlineNo)==0)
     {
         vector<Tuple> vecT;
@@ -74,7 +81,18 @@ void SortedEdgeTable::incrementX(int bucketNo)
 {
     vector<Tuple> * bucketVec = &buckets.at(bucketNo);
     for(vector<Tuple>::iterator it=(*bucketVec).begin(); it!=(*bucketVec).end(); ++it )
-        (*it).xOfyMin = (*it).xOfyMin + (*it).inverseSlope;
+    {
+        (*it).counter+=(*it).dx;
+        if((*it).dx !=0 &&  (*it).counter >= (*it).dy )
+        {
+            (*it).counter=0;
+            if((*it).xOfyMin < (*it).xOfyMax )
+                (*it).plotX++;
+            else
+                (*it).plotX--;
+        }
+        //(*it).xOfyMin = (*it).xOfyMin + (*it).inverseSlope;
+    }
 }
 
 
@@ -101,7 +119,7 @@ void SortedEdgeTable::traverseEdgeTable()
         vector<Tuple> vect = (*mapIt).second;
         printf("Scanline(yMin) %d : \n",key);
         for(vector<Tuple>::iterator it=vect.begin(); it!=vect.end(); ++it )
-            printf("(%d,%d) to (%d,%d) (%d,%f,%f) \n",(*it).xEndPoints[0],(*it).yEndPoints[0],(*it).xEndPoints[1],(*it).yEndPoints[1],(*it).yMax,(*it).xOfyMin,(*it).inverseSlope);
+            printf("(%d,%d) to (%d,%d) => (%d,%d,%d,%d,%d,%d) \n",(*it).xEndPoints[0],(*it).yEndPoints[0],(*it).xEndPoints[1],(*it).yEndPoints[1],(*it).dy,(*it).dx, (*it).xOfyMin, (*it).xOfyMax, (*it).counter, (*it).plotX);
         printf("\n");
     }
 }
@@ -126,11 +144,14 @@ void structCopy(Tuple *t1, Tuple *t2)
     //Copy t2 to t1
     (*t1).yMax=(*t2).yMax;
     (*t1).xOfyMin=(*t2).xOfyMin;
+    (*t1).xOfyMax=(*t2).xOfyMax;
+    (*t1).dx=(*t2).dx;
+    (*t1).dy=(*t2).dy;
+    (*t1).plotX=(*t2).plotX;
     (*t1).xEndPoints[0]=(*t2).xEndPoints[0];
     (*t1).xEndPoints[1]=(*t2).xEndPoints[1];
     (*t1).yEndPoints[0]=(*t2).yEndPoints[0];
     (*t1).yEndPoints[1]=(*t2).yEndPoints[1];
-    (*t1).inverseSlope=(*t2).inverseSlope;
 }
 
 void SortedEdgeTable::mergeSortBucket(vector<Tuple>&left, vector<Tuple>& right, vector<Tuple>& bars)
@@ -141,7 +162,7 @@ void SortedEdgeTable::mergeSortBucket(vector<Tuple>&left, vector<Tuple>& right, 
 
     while (j < nL && k < nR)
     {
-        if (left[j].xOfyMin < right[k].xOfyMin) {
+        if (left[j].plotX < right[k].plotX) {
             structCopy(&bars[i],&left[j]);
             j++;
         }
@@ -192,7 +213,11 @@ void scanlineFill(SortedEdgeTable * MainTable)
                 t1.xEndPoints[1]=(*it).xEndPoints[1];
                 t1.yEndPoints[0]=(*it).yEndPoints[0];
                 t1.yEndPoints[1]=(*it).yEndPoints[1];
-                t1.inverseSlope=(*it).inverseSlope;
+                t1.xOfyMax=(*it).xOfyMax;
+                t1.dx=(*it).dx;
+                t1.dy=(*it).dy;
+                t1.plotX=(*it).plotX;
+                t1.counter=(*it).counter;
                 ActiveTable.buckets.at(0).push_back(t1);
             }
         }
@@ -203,16 +228,10 @@ void scanlineFill(SortedEdgeTable * MainTable)
 		while (j < ActiveTable.buckets[0].size() )
 		{
 			if ( noOfIntersections%2==0 )
-			{
-				x1 =(int) (ActiveTable.buckets[0])[j].xOfyMin;
-				yMax1 = (ActiveTable.buckets[0])[j].yMax;
-                noOfIntersections++;
-			}
+				x1 = (ActiveTable.buckets[0])[j].plotX;
 			else
 			{
-				x2 = (int)(ActiveTable.buckets[0])[j].xOfyMin;
-				yMax2 = (ActiveTable.buckets[0])[j].yMax;
-                noOfIntersections++;
+				x2 = (ActiveTable.buckets[0])[j].plotX;
 				glColor3f(0.0f,0.7f,0.0f);
 				glBegin(GL_LINES);
 				glVertex2i(x1+1,i);
@@ -220,6 +239,7 @@ void scanlineFill(SortedEdgeTable * MainTable)
 				glEnd();
 				glFlush();
 			}
+			noOfIntersections++;
 			j++;
 		}
         ActiveTable.incrementX(0);
