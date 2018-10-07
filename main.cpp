@@ -4,6 +4,7 @@
 #include <GL/glut.h>
 #include "header.h"
 #include<math.h>
+#include<bits/stdc++.h>
 using namespace std;
 
 void Piston();
